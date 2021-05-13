@@ -7,17 +7,18 @@ const path = require('path');
 const args = process.argv || [];
 const test = args.some(arg => arg.includes('jasmine'));
 
-const databaseUri = process.env.DATABASE_URI || process.env.MONGODB_URI;
+// const Parse = require('parse/node').Parse;
+// Parse.initialize('myAppId');
+const databaseUri ='postgres://postgres:postgres@localhost:5432/geladeira_test'
 
-if (!databaseUri) {
-  console.log('DATABASE_URI not specified, falling back to localhost.');
-}
 const config = {
-  databaseURI: databaseUri || 'mongodb://localhost:27017/dev',
+ 
+  databaseURI: databaseUri,
   cloud: process.env.CLOUD_CODE_MAIN || __dirname + '/cloud/main.js',
-  appId: process.env.APP_ID || 'myAppId',
-  masterKey: process.env.MASTER_KEY || '', //Add your master key here. Keep it secret!
-  serverURL: process.env.SERVER_URL || 'http://localhost:1337/parse',  // Don't forget to change to https if needed
+  appId: process.env.APP_ID || 'geladeira',
+  masterKey:'master', //Add your master key here. Keep it secret!
+  serverURL:'http://localhost:1337/parse',  // Don't forget to change to https if needed
+  javascriptKey:'javascriptKeY',
   liveQuery: {
     classNames: ["Posts", "Comments"] // List of classes to support for query subscriptions
   }
@@ -32,6 +33,7 @@ const app = express();
 app.use('/public', express.static(path.join(__dirname, '/public')));
 
 // Serve the Parse API on the /parse URL prefix
+const reject = process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 if (!test) {
   const api = new ParseServer(config);
@@ -49,14 +51,38 @@ app.get('/test', function(req, res) {
   res.sendFile(path.join(__dirname, '/public/test.html'));
 });
 
+
+app.get('/testei', function(request, response, next){
+  const Usuario = Parse.Object.extend('usuario');
+  const myNewObject = new Usuario();
+  
+  myNewObject.set('nome', 'A string');
+  myNewObject.set('senha', 'A string');
+
+  
+  myNewObject.save().then(
+    (result) => {
+      if (typeof document !== 'undefined') document.write(`Project created: ${JSON.stringify(result)}`);
+      console.log('Project created', result);
+    },
+    (error) => {
+      if (typeof document !== 'undefined') document.write(`Error while creating Project: ${JSON.stringify(error)}`);
+      console.error('Error while creating Project: ', error);
+    }
+  );
+
+ 
+});
+
 const port = process.env.PORT || 1337;
-if (!test) {
+if (!test) { 
   const httpServer = require('http').createServer(app);
   httpServer.listen(port, function() {
     console.log('parse-server-example running on port ' + port + '.');
   });
   // This will enable the Live Query real-time server
   ParseServer.createLiveQueryServer(httpServer);
+  
 }
 
 module.exports = {
